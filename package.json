@@ -1,5 +1,16 @@
 {
   "devDependencies": {
     "typescript": "^5.6.2"
-  }
+  },
+  "type": "module",
+  "name": "virtualaccountmanagement",
+  "version": "1.0.0",
+  "description": "This is a github repository for the purpose of personal budgeting without the need of separating funds into separate bank accounts.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
