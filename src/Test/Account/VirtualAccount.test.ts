@@ -1,4 +1,4 @@
-import { VirtualAccountType, VirtualAccount, createAccountMap, calculateAccountAmounts } from "../VirtualAccountManagement/VirtualAccount.js";
+import { VirtualAccountType, VirtualAccount, createAccountMap, calculateAccountAmounts } from "../../VirtualAccountManagement/Account/VirtualAccount.js"
 
 let accounts: VirtualAccount[] = [];
 

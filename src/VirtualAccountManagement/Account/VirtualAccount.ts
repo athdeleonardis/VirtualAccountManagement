@@ -16,11 +16,12 @@ export type AccountGroup = {
 };
 
 export type VirtualAccount = Account | AccountGroup;
-export type AccountMap = Map<string, VirtualAccount>;
+export type VirtualAccountMap = Map<string, VirtualAccount>;
+export type AccountMap = Map<string, Account>;
 export type AccountAmountMap = Map<string, number>;
 export type AccountTypeMap = Map<VirtualAccountType, VirtualAccount[]>;
 
-export function createAccountMap(accounts: VirtualAccount[]): AccountMap {
+export function createAccountMap(accounts: VirtualAccount[]): VirtualAccountMap {
   const map = new Map();
   accounts.forEach(virtualAccount => {
     map.set(virtualAccount.name, virtualAccount);
@@ -28,7 +29,7 @@ export function createAccountMap(accounts: VirtualAccount[]): AccountMap {
   return map;
 };
 
-export function accountGroupIsRecursive(group: AccountGroup, accountMap: AccountMap): Boolean {
+export function accountGroupIsRecursive(group: AccountGroup, accountMap: VirtualAccountMap): Boolean {
   return _accountGroupIsRecursive(group, accountMap, new Set<string>());
 }
 
@@ -45,7 +46,7 @@ export function separateAccounts(accounts: VirtualAccount[]): AccountTypeMap {
   return accountTypeMap;
 }
 
-function _accountGroupIsRecursive(currentAccount: VirtualAccount, accountMap: AccountMap, visitedAccounts: Set<String>): Boolean {
+function _accountGroupIsRecursive(currentAccount: VirtualAccount, accountMap: VirtualAccountMap, visitedAccounts: Set<String>): Boolean {
   if (currentAccount.kind == VirtualAccountType.Account)
     return false;
   if (visitedAccounts.has(currentAccount.name))
@@ -55,8 +56,6 @@ function _accountGroupIsRecursive(currentAccount: VirtualAccount, accountMap: Ac
   for (let i = 0; i < currentAccount.accounts.length; i++) {
     let childAccountName = currentAccount.accounts[i];
     let childAccount = accountMap.get(childAccountName);
-    if (childAccount === undefined)
-      throw new Error(`Account map missing child '${childAccount}' of account group '${currentAccount.name}'.`);
     if (_accountGroupIsRecursive(childAccount, accountMap, visitedAccounts))
       return true;
   }
@@ -64,7 +63,7 @@ function _accountGroupIsRecursive(currentAccount: VirtualAccount, accountMap: Ac
   return false;
 }
 
-export function calculateAccountAmounts(accounts: VirtualAccount[], accountMap: AccountMap): AccountAmountMap {
+export function calculateAccountAmounts(accounts: VirtualAccount[], accountMap: VirtualAccountMap): AccountAmountMap {
   const map = new Map<string, number>();
   accounts.forEach(account => {
     _calculateAccountAmounts(account, accountMap, map);
@@ -72,7 +71,7 @@ export function calculateAccountAmounts(accounts: VirtualAccount[], accountMap: 
   return map;
 }
 
-function _calculateAccountAmounts(account: VirtualAccount, accountMap: AccountMap, accountAmountMap: AccountAmountMap): number {
+function _calculateAccountAmounts(account: VirtualAccount, accountMap: VirtualAccountMap, accountAmountMap: AccountAmountMap): number {
   if (accountAmountMap.has(account.name))
     return accountAmountMap.get(account.name);
   if (account.kind == VirtualAccountType.Account) {
