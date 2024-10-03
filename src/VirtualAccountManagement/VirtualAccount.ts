@@ -12,7 +12,6 @@ export type Account = {
 export type AccountGroup = {
   kind: VirtualAccountType.Group
   name: string,
-  amount: number | undefined,
   accounts: string[]
 };
 
