@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState } from 'react';
 import { Expense, EExpenseType } from '../../../VirtualAccountManagement/Expenses/Expenses.ts';
+import fileDownload from 'js-file-download';
 
 function createBlankExpense(expenseType: EExpenseType): Expense {
   switch (expenseType) {
@@ -139,6 +140,14 @@ const ExpensesEditorStateUpdater = createContext<ExpensesEditorStateUpdater>({ s
 
 const ExpensesEditor = () => {
   const [expenseEditorState, setExpenseEditorState] = useState<ExpensesEditorState>({ expenses: [], currentlyEditing: null });
+  
+  async function chooseFile(e: React.SyntheticEvent) {
+    const { files } = e.target as typeof e.target & { files?: File[] };
+    if (files && files.length) {
+      const expenses = JSON.parse(await files[0].text()) as Expense[];
+      setExpenseEditorState((_) => { return { expenses: expenses, currentlyEditing: null }; });
+    }
+  }
 
   function newExpense() {
     const indexEditing = expenseEditorState.expenses.length;
@@ -148,19 +157,27 @@ const ExpensesEditor = () => {
   }
 
   const save = useCallback((expense: Expense) => {
-    if (expenseEditorState.currentlyEditing == null)
-      return;
-    expenseEditorState.expenses[expenseEditorState.currentlyEditing.index] = expenseEditorState.currentlyEditing.expense;
-    setExpenseEditorState({ expenses: expenseEditorState.expenses, currentlyEditing: null });
+    setExpenseEditorState((expenseEditorState: ExpensesEditorState) => {
+      if (expenseEditorState.currentlyEditing == null)
+        return expenseEditorState;
+      expenseEditorState.expenses[expenseEditorState.currentlyEditing.index] = expense;
+      return {
+        ...expenseEditorState,
+        currentlyEditing: null
+      };
+    })
   }, []);
 
   const changeEditType = useCallback((expenseType: EExpenseType) => {
-    if (expenseEditorState.currentlyEditing == null)
-      return;
     setExpenseEditorState((expenseEditorState: ExpensesEditorState) => {
+      if (expenseEditorState.currentlyEditing == null)
+        return expenseEditorState;
       return {
-        expenses: expenseEditorState.expenses,
-        currentlyEditing: { index: expenseEditorState.currentlyEditing?.index || 0, expense: createBlankExpense(expenseType)}
+        ...expenseEditorState,
+        currentlyEditing: {
+          ...expenseEditorState.currentlyEditing,
+          expense: createBlankExpense(expenseType)
+        }
       };
     });
   }, []);
@@ -168,7 +185,7 @@ const ExpensesEditor = () => {
   const selectToEdit = useCallback((index: number) => {
     setExpenseEditorState((expenseEditorState: ExpensesEditorState) => {
       return {
-        expenses: expenseEditorState.expenses,
+        ...expenseEditorState,
         currentlyEditing: { index: index, expense: expenseEditorState.expenses[index] }
       }
     });
@@ -178,6 +195,7 @@ const ExpensesEditor = () => {
     <ExpensesEditorStateUpdater.Provider value={{ save: save, changeEditType: changeEditType, selectToEdit: selectToEdit }}>
       <div className='Expenses-Editor'>
         Expenses
+        <input type='file' onChange={chooseFile}/>
         <ul>
           {
             expenseEditorState.expenses.map((expense, index) => {
@@ -189,6 +207,7 @@ const ExpensesEditor = () => {
           }
         </ul>
         <button onClick={() => newExpense()}>New Expense</button>
+        <button onClick={() => fileDownload(JSON.stringify(expenseEditorState.expenses), 'expenses.json')}>Download</button>
       </div>
     </ExpensesEditorStateUpdater.Provider>
   );
