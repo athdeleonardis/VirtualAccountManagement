@@ -40,3 +40,17 @@
 .read-the-docs {
   color: #888;
 }
+
+.Expenses-Editor {
+  border: solid;
+}
+
+.Expenses-Editor-Line {
+  padding: 5px;
+  text-align: left;
+}
+
+.Expenses-Editor-Line span {
+  padding: 5px;
+  border: solid;
+}
