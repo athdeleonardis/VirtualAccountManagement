@@ -30,37 +30,24 @@ const ExpenseLineEditor = ({ expense }: { expense: Expense }) => {
   // Convert form entry to an expense structure to save
   function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
-    const target = e.target as typeof e.target & {
-      kind: { value: EExpenseType }
+    const values = e.target as typeof e.target & {
+      kind: { value: EExpenseType },
+      name: { value: string },
+      dayOfMonth: { value: string },
+      date: { value: string },
+      amount: {value: string }
     };
-    switch (target.kind.value) {
+    switch (values.kind.value) {
       case EExpenseType.Biweekly: {
-        const values = e.target as typeof e.target & {
-          kind: { value: EExpenseType.Biweekly },
-          name: { value: string },
-          amount: {value: number }
-        };
-        save({ kind: values.kind.value, name: values.name.value, amount: values.amount.value });
+        save({ kind: values.kind.value, name: values.name.value, amount: parseFloat(values.amount.value) });
         break;
       }
       case EExpenseType.Monthly: {
-          const values = e.target as typeof e.target & {
-            kind: { value: EExpenseType.Monthly },
-            name: { value: string },
-            dayOfMonth: { value: number },
-            amount: {value: number }
-          };
-          save({ kind: values.kind.value, name: values.name.value, dayOfMonth: values.dayOfMonth.value, amount: values.amount.value });
+          save({ kind: values.kind.value, name: values.name.value, dayOfMonth: parseInt(values.dayOfMonth.value), amount: parseFloat(values.amount.value) });
         break;
       }
       case EExpenseType.OneTime: {
-        const values = e.target as typeof e.target & {
-          kind: { value: EExpenseType.OneTime },
-          name: { value: string },
-          date: { value: string },
-          amount: { value: number }
-        };
-        save({ kind: values.kind.value, name: values.name.value, date: values.date.value, amount: values.amount.value });
+        save({ kind: values.kind.value, name: values.name.value, date: values.date.value, amount: parseFloat(values.amount.value) });
         break;
       }
     }
@@ -136,6 +123,51 @@ const ExpenseLine = ({ index, expense }: { index: number, expense: Expense }) =>
   );
 }
 
+const ExpensesSummary = ({ expenses }: { expenses: Expense[] }) => {
+  function divideAmount(expense: Expense): number {
+    switch (expense.kind) {
+      case EExpenseType.Biweekly:
+        return expense.amount;
+      case EExpenseType.Monthly:
+        return expense.amount / 2;
+      case EExpenseType.OneTime:
+        return expense.amount / numFortnightsBetween(new Date(expense.date), new Date());
+    }
+  }
+
+  function numFortnightsBetween(date1: Date, date2: Date): number {
+    return Math.floor((date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24 * 14));
+  }
+
+  const amounts = expenses.map((expense) => divideAmount(expense));
+  let total = 0;
+  amounts.forEach((amount) => total += amount);
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          expenses.map((expense, index) => {
+            return <tr>
+              <td>{expense.name}</td>
+              <td>{amounts[index]}</td>
+            </tr>
+          })
+        }
+        <tr>
+          <td>Total</td>
+          <td>{total}</td>
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
 const ExpensesEditorStateUpdater = createContext<ExpensesEditorStateUpdater>({ save: (_) => null, changeEditType: (_) => null, selectToEdit: (_) => null });
 
 const ExpensesEditor = () => {
@@ -208,6 +240,7 @@ const ExpensesEditor = () => {
         </ul>
         <button onClick={() => newExpense()}>New Expense</button>
         <button onClick={() => fileDownload(JSON.stringify(expenseEditorState.expenses), 'expenses.json')}>Download</button>
+        <ExpensesSummary expenses={expenseEditorState.expenses} />
       </div>
     </ExpensesEditorStateUpdater.Provider>
   );
