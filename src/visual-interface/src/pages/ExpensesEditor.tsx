@@ -61,7 +61,7 @@ const ExpenseLineEditor = ({ expense }: { expense: Expense }) => {
   }
 
   return (
-    <div className='Expenses-Editor-Line-Editing'>
+    <div className='Editor-Line-Editing'>
       Editing
       <form onSubmit={handleSubmit}>
         <label>
@@ -104,21 +104,21 @@ const ExpenseLine = ({ index, expense }: { index: number, expense: Expense }) =>
   const { selectToEdit } = useContext(ExpensesEditorStateUpdater);
 
   return (
-    <div className='Expenses-Editor-Line'>
+    <div className='Editor-Line'>
       <button onClick={() => selectToEdit(index)}>Edit</button>
-      <span className='Expenses-Editor-Line-Entry'>{`Type: ${expense.kind}`}</span>
-      <span className='Expenses-Editor-Line-Entry'>{`Name: ${expense.name}`}</span>
+      <span className='Editor-Line-Entry'>{`Type: ${expense.kind}`}</span>
+      <span className='Editor-Line-Entry'>{`Name: ${expense.name}`}</span>
       {
         (expense.kind === EExpenseType.Monthly)
-        ? <span className='Expenses-Editor-Line-Entry'>{`Day: ${expense.dayOfMonth}`}</span>
+        ? <span className='Editor-Line-Entry'>{`Day: ${expense.dayOfMonth}`}</span>
         : <></>
       }
       {
         (expense.kind === EExpenseType.OneTime)
-        ? <span className='Expenses-Editor-Line-Entry'>{`Date: ${expense.date}`}</span>
+        ? <span className='Editor-Line-Entry'>{`Date: ${expense.date}`}</span>
         : <></>
       }
-      <span className='Expenses-Editor-Line-Entry'>{`Amount: ${expense.amount}`}</span>
+      <span className='Editor-Line-Entry'>{`Amount: ${expense.amount}`}</span>
     </div>
   );
 }
@@ -139,7 +139,11 @@ const ExpensesSummary = ({ expenses }: { expenses: Expense[] }) => {
     return Math.floor((date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24 * 14));
   }
 
-  const amounts = expenses.map((expense) => divideAmount(expense));
+  function roundTo2DecimalPlaces(num: number) {
+    return Math.floor(num * 100) / 100;
+  }
+
+  const amounts = expenses.map((expense) => roundTo2DecimalPlaces(divideAmount(expense)));
   let total = 0;
   amounts.forEach((amount) => total += amount);
   return (
@@ -225,22 +229,28 @@ const ExpensesEditor = () => {
 
   return (
     <ExpensesEditorStateUpdater.Provider value={{ save: save, changeEditType: changeEditType, selectToEdit: selectToEdit }}>
-      <div className='Expenses-Editor'>
-        Expenses
-        <input type='file' onChange={chooseFile}/>
-        <ul>
-          {
-            expenseEditorState.expenses.map((expense, index) => {
-              if (expenseEditorState.currentlyEditing != null && index == expenseEditorState.currentlyEditing.index)
-                return <li key={index}><ExpenseLineEditor expense={expenseEditorState.currentlyEditing.expense} /></li>
-              else
-                return <li key={index}><ExpenseLine index={index} expense={expense} /></li>
-            })
-          }
-        </ul>
-        <button onClick={() => newExpense()}>New Expense</button>
-        <button onClick={() => fileDownload(JSON.stringify(expenseEditorState.expenses), 'expenses.json')}>Download</button>
-        <ExpensesSummary expenses={expenseEditorState.expenses} />
+      <div className='Editor'>
+        <div className='Title'>Expenses Editor</div>
+        <div className='Editor-Element'>
+          <div className='Title'>Edit Expense Lines</div>
+          <input type='file' onChange={chooseFile}/>
+          <ul>
+            {
+              expenseEditorState.expenses.map((expense, index) => {
+                if (expenseEditorState.currentlyEditing != null && index == expenseEditorState.currentlyEditing.index)
+                  return <li key={index}><ExpenseLineEditor expense={expenseEditorState.currentlyEditing.expense} /></li>
+                else
+                  return <li key={index}><ExpenseLine index={index} expense={expense} /></li>
+              })
+            }
+          </ul>
+          <button onClick={() => newExpense()}>New Expense</button>
+          <button onClick={() => fileDownload(JSON.stringify(expenseEditorState.expenses), 'expenses.json')}>Download</button>
+        </div>
+        <div className='Editor-Element'>
+          <div className='Title'>Expenses Per Paycheck</div>
+          <ExpensesSummary expenses={expenseEditorState.expenses} />
+        </div>
       </div>
     </ExpensesEditorStateUpdater.Provider>
   );
