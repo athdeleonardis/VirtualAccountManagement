@@ -1,4 +1,4 @@
-import { AccountMap, VirtualAccountType } from "../../VirtualAccountManagement/Account/VirtualAccount.js";
+import { TAccountMap, EVirtualAccountType } from "../../VirtualAccountManagement/Account/VirtualAccount.js";
 import { TLedgerLine, ELedgerLineType, createLedgerLine } from "../../VirtualAccountManagement/Ledger/Ledger.js";
 
 const ledgerLineData: TLedgerLine[] = [];
@@ -11,7 +11,7 @@ ledgerLineData.push({ kind: ELedgerLineType.Distribution, fromAccount: "Bob", to
 const ledgerLines = ledgerLineData.map(data => createLedgerLine(data));
 
 console.log("Before add all accounts");
-const accountMap: AccountMap = new Map();
+const accountMap: TAccountMap = new Map();
 ledgerLines.forEach(line => {
   console.log(line.checkValidity(accountMap));
 });
@@ -19,7 +19,7 @@ ledgerLines.forEach(line => {
 console.log("After add all accounts");
 ledgerLines.forEach(line => {
   const releventAccounts = line.releventAccounts();
-  releventAccounts.forEach(account => accountMap.set(account, { kind: VirtualAccountType.Account, name: account, amount:  0}));
+  releventAccounts.forEach(account => accountMap.set(account, { kind: EVirtualAccountType.Account, name: account, amount:  0}));
 });
 ledgerLines.forEach(line => {
   console.log(line.checkValidity(accountMap));

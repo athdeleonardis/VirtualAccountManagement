@@ -1,4 +1,4 @@
-import { AccountAmountMap, AccountMap, VirtualAccountMap } from "../Account/VirtualAccount.js";
+import { AccountAmountMap, TAccountMap, TVirtualAccountMap } from "../Account/VirtualAccount.js";
 
 export enum ELedgerLineType {
   Addition = "Addition",
@@ -43,7 +43,7 @@ export type TLedgerLineTopUp = {
 export type TLedgerLineDistribution = {
   kind: ELedgerLineType.Distribution,
   fromAccount: string,
-  toAccounts: [string, number][]
+  toAccounts: { toAccount: string, amount: number }[]
 }
 
 /**
@@ -63,8 +63,8 @@ export enum ELedgerLineValidity {
  * A collection of methods all LedgerLine classes should implement.
  */
 export interface ILedgerLine {
-  checkValidity: (accountMap: AccountMap) => ELedgerLineValidity,
-  apply: (accountMap: AccountMap) => void
+  checkValidity: (accountMap: TAccountMap) => ELedgerLineValidity,
+  apply: (accountMap: TAccountMap) => void
   releventAccounts: () => Set<string>
 }
 
@@ -75,7 +75,7 @@ export class LedgerLineAddition implements ILedgerLine {
     this.data = data;
   }
 
-  checkValidity(accountMap: AccountMap): ELedgerLineValidity {
+  checkValidity(accountMap: TAccountMap): ELedgerLineValidity {
     if (this.data.amount <= 0)
         return ELedgerLineValidity.InvalidAmount;
       if (!accountMap.has(this.data.toAccount))
@@ -83,8 +83,11 @@ export class LedgerLineAddition implements ILedgerLine {
       return ELedgerLineValidity.Valid;
   }
 
-  apply(accountMap: AccountMap) {
-    accountMap.get(this.data.toAccount).amount += this.data.amount;
+  apply(accountMap: TAccountMap) {
+    if (!accountMap.has(this.data.toAccount))
+      accountMap.set(this.data.toAccount, this.data.amount);
+    else
+      accountMap.set(this.data.toAccount, accountMap.get(this.data.toAccount) + this.data.amount);
   }
 
   releventAccounts(): Set<string> {
@@ -99,7 +102,7 @@ export class LedgerLineSubtraction implements ILedgerLine {
     this.data = data;
   }
 
-  checkValidity(accountMap: AccountMap): ELedgerLineValidity {
+  checkValidity(accountMap: TAccountMap): ELedgerLineValidity {
     if (this.data.amount <= 0)
       return ELedgerLineValidity.InvalidFromAccount;
     if (!accountMap.has(this.data.fromAccount))
@@ -107,8 +110,11 @@ export class LedgerLineSubtraction implements ILedgerLine {
     return ELedgerLineValidity.Valid;
   }
 
-  apply(accountMap: AccountMap) {
-    accountMap.get(this.data.fromAccount).amount -= this.data.amount;
+  apply(accountMap: TAccountMap) {
+    if (!accountMap.has(this.data.fromAccount))
+      accountMap.set(this.data.fromAccount, -this.data.amount);
+    else
+      accountMap.set(this.data.fromAccount, accountMap.get(this.data.fromAccount) - this.data.amount);
   }
 
   releventAccounts(): Set<string> {
@@ -123,7 +129,7 @@ export class LedgerLineTopUp implements ILedgerLine {
     this.data = data;
   }
 
-  checkValidity(accountMap: AccountMap): ELedgerLineValidity {
+  checkValidity(accountMap: TAccountMap): ELedgerLineValidity {
     if (this.data.amount <= 0)
       return ELedgerLineValidity.InvalidAmount;
     if (!accountMap.has(this.data.fromAccount))
@@ -133,14 +139,18 @@ export class LedgerLineTopUp implements ILedgerLine {
     return ELedgerLineValidity.Valid;
   }
 
-  apply(accountMap: AccountMap) {
+  apply(accountMap: TAccountMap) {
+    if (!accountMap.has(this.data.toAccount))
+      accountMap.set(this.data.toAccount, 0);
     const toAccount = accountMap.get(this.data.toAccount);
-    if (toAccount.amount > this.data.amount)
+    if (toAccount > this.data.amount)
       return;
-    const topUpAmount = this.data.amount - toAccount.amount;
+    const topUpAmount = this.data.amount - toAccount;
+    if (!accountMap.has(this.data.fromAccount))
+      accountMap.set(this.data.fromAccount, 0);
     const fromAccount = accountMap.get(this.data.fromAccount);
-    toAccount.amount += topUpAmount;
-    fromAccount.amount -= topUpAmount;
+    accountMap.set(this.data.fromAccount, accountMap.get(this.data.fromAccount) - topUpAmount);
+    accountMap.set(this.data.toAccount, accountMap.get(this.data.toAccount) + topUpAmount);
   }
 
   releventAccounts(): Set<string> {
@@ -155,7 +165,7 @@ export class LedgerLineDistribution implements ILedgerLine {
     this.data = data;
   }
 
-  checkValidity(accountMap: AccountMap): ELedgerLineValidity {
+  checkValidity(accountMap: TAccountMap): ELedgerLineValidity {
     if (!accountMap.has(this.data.fromAccount))
       return ELedgerLineValidity.InvalidFromAccount;
     for (let i = 0; i < this.data.toAccounts.length; i++) {
@@ -170,16 +180,19 @@ export class LedgerLineDistribution implements ILedgerLine {
     return ELedgerLineValidity.Valid;
   }
 
-  apply(accountMap: AccountMap) {
-    const fromAccount = accountMap.get(this.data.fromAccount);
+  apply(accountMap: TAccountMap) {
+    if (!accountMap.has(this.data.fromAccount))
+      accountMap.set(this.data.fromAccount, 0);
+    let fromAccount = accountMap.get(this.data.fromAccount);
     let totalPercentage = 0;
     this.data.toAccounts.forEach(accountPercentage => {
-      const toAccount = accountMap.get(accountPercentage[0]);
+      let toAccount = accountMap.get(accountPercentage[0]);
       const percentage = accountPercentage[1];
       totalPercentage += percentage;
-      toAccount.amount += fromAccount.amount * percentage / 100;
+      toAccount += fromAccount * percentage / 100;
     });
-    fromAccount.amount -= fromAccount.amount * totalPercentage / 100;
+    fromAccount -= fromAccount * totalPercentage / 100;
+    accountMap.set(this.data.fromAccount, fromAccount);
   }
 
   releventAccounts(): Set<string> {
@@ -188,6 +201,19 @@ export class LedgerLineDistribution implements ILedgerLine {
       releventAccounts.add(accountPercentage[0]);
     });
     return releventAccounts;
+  }
+}
+
+export function createLedgerLineKind(kind: ELedgerLineType): TLedgerLine {
+  switch (kind) {
+    case ELedgerLineType.Addition:
+      return { kind: ELedgerLineType.Addition, fromAccount: "from", toAccount: "to", amount: 0 };
+    case ELedgerLineType.Subtraction:
+      return { kind: ELedgerLineType.Subtraction, fromAccount: "from", toAccount: "to", amount: 0 };
+    case ELedgerLineType.TopUp:
+      return { kind: ELedgerLineType.TopUp, fromAccount: "from", toAccount: "to", amount: 0 };
+    case ELedgerLineType.Distribution:
+      return { kind: ELedgerLineType.Distribution, fromAccount: "from", toAccounts: [] };      
   }
 }
 

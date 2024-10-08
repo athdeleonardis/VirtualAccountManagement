@@ -1,27 +1,26 @@
-export enum VirtualAccountType {
+export enum EVirtualAccountType {
   Account = "Account",
   Group = "Group"
 };
 
-export type Account = {
-  kind: VirtualAccountType.Account,
+export type TAccount = {
+  kind: EVirtualAccountType.Account,
   name: string,
   amount: number
 };
 
-export type AccountGroup = {
-  kind: VirtualAccountType.Group
+export type TAccountGroup = {
+  kind: EVirtualAccountType.Group
   name: string,
   accounts: string[]
 };
 
-export type VirtualAccount = Account | AccountGroup;
-export type VirtualAccountMap = Map<string, VirtualAccount>;
-export type AccountMap = Map<string, Account>;
-export type AccountAmountMap = Map<string, number>;
-export type AccountTypeMap = Map<VirtualAccountType, VirtualAccount[]>;
+export type TVirtualAccount = TAccount | TAccountGroup;
+export type TVirtualAccountMap = Map<string, TVirtualAccount>;
+export type TAccountMap = Map<string,number>;
+type TAccountGroupMap = Map<string,TAccountGroup>;
 
-export function createAccountMap(accounts: VirtualAccount[]): VirtualAccountMap {
+export function createVirutalAccountMap(accounts: TVirtualAccount[]): TVirtualAccountMap {
   const map = new Map();
   accounts.forEach(virtualAccount => {
     map.set(virtualAccount.name, virtualAccount);
@@ -29,25 +28,44 @@ export function createAccountMap(accounts: VirtualAccount[]): VirtualAccountMap 
   return map;
 };
 
-export function accountGroupIsRecursive(group: AccountGroup, accountMap: VirtualAccountMap): Boolean {
+function createAccountGroupMap(accountGroups: TAccountGroup[]): TAccountGroupMap {
+  const map = new Map<string,TAccountGroup>();
+  accountGroups.forEach(accountGroup => map.set(accountGroup.name, accountGroup));
+  return map;
+}
+
+export function accountGroupIsRecursive(group: TAccountGroup, accountMap: TVirtualAccountMap): Boolean {
   return _accountGroupIsRecursive(group, accountMap, new Set<string>());
 }
 
-export function separateAccounts(accounts: VirtualAccount[]): AccountTypeMap {
-  const accountTypeMap = new Map<VirtualAccountType, VirtualAccount[]>();
-  accounts.forEach(account => {
-    let accountArray = accountTypeMap.get(account.kind);
-    if (accountArray == undefined) {
-      accountArray = [];
-      accountTypeMap.set(account.kind, accountArray);
-    }
-    accountArray.push(account);
+export function separateAccounts(virtualAccounts: TVirtualAccount[]): { accounts: TAccount[], accountGroups: TAccountGroup[] } {
+  const accounts: TAccount[] = [];
+  const accountGroups: TAccountGroup[] = [];
+  virtualAccounts.forEach(account => {
+    if (account.kind === EVirtualAccountType.Account)
+      accounts.push(account);
+    else
+      accountGroups.push(account);
   });
-  return accountTypeMap;
+  return { accounts: accounts, accountGroups: accountGroups };
 }
 
-function _accountGroupIsRecursive(currentAccount: VirtualAccount, accountMap: VirtualAccountMap, visitedAccounts: Set<String>): Boolean {
-  if (currentAccount.kind == VirtualAccountType.Account)
+export function createAccountMap(accounts: TAccount[]): TAccountMap {
+  const accountMap = new Map<string,number>();
+  accounts.forEach((account) => accountMap.set(account.name, account.amount));
+  return accountMap;
+}
+
+export function accountMapToArray(accountMap: TAccountMap): TAccount[] {
+  const accounts: TAccount[] = [];
+  for (let [accountName, amount] of accountMap) {
+    accounts.push({ kind: EVirtualAccountType.Account, name: accountName, amount: amount });
+  }
+  return accounts;
+}
+
+function _accountGroupIsRecursive(currentAccount: TVirtualAccount, accountMap: TVirtualAccountMap, visitedAccounts: Set<String>): Boolean {
+  if (currentAccount.kind == EVirtualAccountType.Account)
     return false;
   if (visitedAccounts.has(currentAccount.name))
     return true;
@@ -63,28 +81,19 @@ function _accountGroupIsRecursive(currentAccount: VirtualAccount, accountMap: Vi
   return false;
 }
 
-export function calculateAccountAmounts(accounts: VirtualAccount[], accountMap: VirtualAccountMap): AccountAmountMap {
-  const map = new Map<string, number>();
-  accounts.forEach(account => {
-    _calculateAccountAmounts(account, accountMap, map);
-  })
-  return map;
+export function calculateAccountGroups(accountGroups: TAccountGroup[], accountMap: TAccountMap): TAccountMap {
+  const accountGroupAmountMap = new Map<string,number>();
+  accountGroups.forEach(accountGroup => _calculateAccountGroups(accountGroup.name, createAccountGroupMap(accountGroups), accountMap, accountGroupAmountMap));
+  return accountGroupAmountMap;
 }
 
-function _calculateAccountAmounts(account: VirtualAccount, accountMap: VirtualAccountMap, accountAmountMap: AccountAmountMap): number {
-  if (accountAmountMap.has(account.name))
-    return accountAmountMap.get(account.name);
-  if (account.kind == VirtualAccountType.Account) {
-    accountAmountMap.set(account.name, account.amount);
-    return account.amount;
-  }
-  if (account.kind == VirtualAccountType.Group) {
-    let amount = 0;
-    account.accounts.forEach(childAccount => {
-      amount += _calculateAccountAmounts(accountMap.get(childAccount), accountMap, accountAmountMap);
-    });
-    accountAmountMap.set(account.name, amount);
-    return amount;
-  }
+function _calculateAccountGroups(accountName: string, accountGroupMap: TAccountGroupMap, accountMap: TAccountMap, accountGroupAmountMap: TAccountMap): number {
+  if (accountMap.has(accountName))
+    return accountMap.get(accountName);
+  let total = 0;
+  if (accountGroupAmountMap.has(accountName))
+    return accountGroupAmountMap.get(accountName);
+  accountGroupMap.get(accountName).accounts.forEach(childAccount => total += _calculateAccountGroups(childAccount, accountGroupMap, accountMap, accountGroupAmountMap));
+  accountGroupAmountMap.set(accountName, total);
+  return total;
 }
-

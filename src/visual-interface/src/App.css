@@ -9,6 +9,17 @@
   border: solid;
 }
 
+.Editor span {
+  border: solid;
+  margin: 0px;
+  padding: 0px;
+  display: inline-block;
+}
+
+.Editor li {
+  list-style-type: none;
+}
+
 .Editor-Line {
   padding: 5px;
   text-align: left;
@@ -19,7 +30,22 @@
   border: solid;
 }
 
+.Editor-Line-Editing-Vertical {
+  text-align: center;
+}
+
+.Editor-Line-Editing-Vertical form label,
+.Editor-Line-Editing-Vertical form input,
+.Editor-Line-Editing-Vertical form select {
+  text-align: left;
+  display: block;
+}
+
 .Editor-Element {
   border: solid;
   margin: 5px;
+}
+
+.Editor-Element-Horizontal {
+  display: inline-flex;
 }

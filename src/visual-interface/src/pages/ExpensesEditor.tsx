@@ -13,17 +13,6 @@ function createBlankExpense(expenseType: EExpenseType): Expense {
   }
 }
 
-type ExpensesEditorState = {
-  expenses: Expense[],
-  currentlyEditing: { index: number, expense: Expense } | null
-};
-
-type ExpensesEditorStateUpdater = {
-  save: (expense: Expense) => void,
-  changeEditType: (expenseType: EExpenseType) => void
-  selectToEdit: (index: number) => void
-};
-
 const ExpenseLineEditor = ({ expense }: { expense: Expense }) => {
   const { save, changeEditType } = useContext(ExpensesEditorStateUpdater);
 
@@ -157,7 +146,7 @@ const ExpensesSummary = ({ expenses }: { expenses: Expense[] }) => {
       <tbody>
         {
           expenses.map((expense, index) => {
-            return <tr>
+            return <tr key={index}>
               <td>{expense.name}</td>
               <td>{amounts[index]}</td>
             </tr>
@@ -171,6 +160,17 @@ const ExpensesSummary = ({ expenses }: { expenses: Expense[] }) => {
     </table>
   )
 }
+
+type ExpensesEditorState = {
+  expenses: Expense[],
+  currentlyEditing: { index: number, expense: Expense } | null
+};
+
+type ExpensesEditorStateUpdater = {
+  save: (expense: Expense) => void,
+  changeEditType: (expenseType: EExpenseType) => void
+  selectToEdit: (index: number) => void
+};
 
 const ExpensesEditorStateUpdater = createContext<ExpensesEditorStateUpdater>({ save: (_) => null, changeEditType: (_) => null, selectToEdit: (_) => null });
 
@@ -189,7 +189,7 @@ const ExpensesEditor = () => {
     const indexEditing = expenseEditorState.expenses.length;
     const newExpense: Expense = createBlankExpense(EExpenseType.Biweekly);
     expenseEditorState.expenses.push(newExpense);
-    setExpenseEditorState({ expenses: expenseEditorState.expenses, currentlyEditing: { index: indexEditing, expense: newExpense} });
+    setExpenseEditorState({ ...expenseEditorState, currentlyEditing: { index: indexEditing, expense: newExpense} });
   }
 
   const save = useCallback((expense: Expense) => {
