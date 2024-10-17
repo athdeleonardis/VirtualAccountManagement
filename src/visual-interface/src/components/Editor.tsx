@@ -1,34 +1,53 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
 import { TAccount } from "../../../VirtualAccountManagement/Account/VirtualAccount";
-import EditorElementWrapper from "./editor/accounts/EditorElementWrapper";
+import EditorElementWrapper from "./editor/EditorElementWrapper";
 
 
 type TEditorState = {
-  accounts: TAccount[];
+  accounts: (TAccount[] | null)[];
 }
 
 type TEditorStateContext = {
-  getAccounts: () => TAccount[],
-  setAccounts: (accounts: TAccount[]) => void;
+  registerElement: (index: number) => void,
+  getElementAccounts: (index: number) => TAccount[],
+  setElementAccounts: (index: number, accounts: TAccount[]) => void;
 }
 
 const EditorStateContext = createContext<TEditorStateContext>({
-  getAccounts: () => [],
-  setAccounts: (_) => null,
+  registerElement: (_) => null,
+  getElementAccounts: (_) => [],
+  setElementAccounts: (_) => null,
 });
 
 export const useEditorState = () => useContext(EditorStateContext);
 
 const Editor = ({ children }: { children?: React.ReactNode }) => {
+  console.log("Rendering.");
+  
   const [state, _] = useState<TEditorState>({
     accounts: []
   });
 
-  const getAccounts = useCallback(() => state.accounts, []);
-  const setAccounts = useCallback((accounts: TAccount[]) => state.accounts = accounts, []);
+  const registerElement = useCallback((index: number) => {
+    while (state.accounts.length < index+1)
+      state.accounts.push(null);
+    return;
+  }, []);
+
+  const getElementAccounts = useCallback((index: number) => {
+    while (index > -1) {
+      const account = state.accounts[index]
+      if (account)
+        return account;
+      index--;
+    }
+    return [];
+  }, []);
+
+  const setElementAccounts = useCallback((index: number, accounts: TAccount[]) => state.accounts[index] = accounts, []);
 
   return (
-    <EditorStateContext.Provider value={{ getAccounts, setAccounts }}>
+    <EditorStateContext.Provider value={{ registerElement, getElementAccounts, setElementAccounts }}>
       <EditorElementWrapper index={0}>
         { children }
       </EditorElementWrapper>

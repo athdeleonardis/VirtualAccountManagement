@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 
-const OpenJSONFileInput = ({ callback }: { callback: (data: any) => any }) => {
+const OpenJSONFileInput: <T>({ callback }: { callback: (data: T) => any }) => JSX.Element = ({ callback }) => {
   const doCallback = useCallback(async (e: React.SyntheticEvent) => {
     const { files } = e.target as typeof e.target & {
       files: File[]
