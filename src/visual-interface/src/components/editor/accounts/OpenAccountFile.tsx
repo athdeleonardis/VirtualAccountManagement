@@ -8,10 +8,10 @@ const OpenAccountFile = () => {
   const [initialAccounts, setInitialAccounts] = useState<TAccount[]>([]);
 
   const onDataRecieved = (accounts: TAccount[]) => {
-    elementRefresh();
     setInitialAccounts(_ => {
       return accounts;
     });
+    elementRefresh();
   }
   
   setAccounts(initialAccounts);

@@ -4,6 +4,7 @@ import DownloadJSONFileButton from "../../DownloadJSONFileButton";
 import OpenJSONFileInput from "../../OpenJSONFileInput";
 import { useEditorElement } from "../EditorElementWrapper";
 import { accountMapToArray, createAccountMap } from "../../../../../VirtualAccountManagement/Account/VirtualAccount";
+import { insert } from "../../../util/array-util";
 
 type TLedgerState = {
   ledgerLines: TLedgerLine[],
@@ -22,6 +23,7 @@ const LedgerLine = ({ index, editing, ledgerLine }: { index: number, editing: bo
   const { selectToEdit } = useContext(LedgerStateUpdater);
   return (
     <div className='Editor-Line'>
+      <div>{index}</div>
       {
         (editing) ? <></> : <button onClick={() => selectToEdit(index)}>Edit</button>
       }
@@ -99,7 +101,6 @@ const Ledger = () => {
   });
 
   function setLedgerLines(ledgerLines: TLedgerLine[]) {
-    elementRefresh();
     setState((state: TLedgerState) => {
       return {
         ...state,
@@ -107,32 +108,32 @@ const Ledger = () => {
         ledgerLines: ledgerLines
       };
     });
+    elementRefresh();
   }
 
-  function addLedgerLine() {
-    elementRefresh();
+  function addLedgerLine(index: number) {
     setState((state: TLedgerState) => {
-      const newLineIndex = state.ledgerLines.length;
       const newLine = createLedgerLineKind(ELedgerLineType.Addition);
-      state.ledgerLines.push(newLine);
       return {
         ...state,
-        currentlyEditing: { index: newLineIndex, ledgerLine: newLine }
+        ledgerLines: insert(state.ledgerLines, index, newLine),
+        currentlyEditing: { index: index, ledgerLine: newLine }
       };
     });
+    elementRefresh();
   }
 
   const save = useCallback((ledgerLine: TLedgerLine) => {
-    elementRefresh();
     setState((state: TLedgerState) => {
       if (state.currentlyEditing == null)
-        return state;
+        return  state;
       state.ledgerLines[state.currentlyEditing.index] = ledgerLine;
       return {
         ...state,
         currentlyEditing: null
       };
     });
+    elementRefresh();
   }, []);
 
   const selectToEdit = useCallback((index: number) => {
@@ -145,7 +146,6 @@ const Ledger = () => {
   }, []);
 
   const changeEditKind = useCallback((kind: ELedgerLineType) => {
-    elementRefresh();
     setState((state: TLedgerState) => {
       if (state.currentlyEditing == null || state.currentlyEditing.ledgerLine.kind === kind)
         return state;
@@ -154,6 +154,7 @@ const Ledger = () => {
         currentlyEditing: { ...state.currentlyEditing, ledgerLine: createLedgerLineKind(kind) }
       };
     });
+    elementRefresh();
   }, []);
 
   const initialAccounts = getAccounts();
@@ -185,7 +186,7 @@ const Ledger = () => {
               ))
             }
             <div>
-              <button onClick={addLedgerLine}>New ledger line</button>
+              <button onClick={() => addLedgerLine(state.ledgerLines.length)}>New ledger line</button>
             </div>
             <div>
               <DownloadJSONFileButton fileName='LedgerLines' data={state.ledgerLines}>Download ledger line data</DownloadJSONFileButton>
